@@ -1,19 +1,9 @@
-# SafeStay Rapid
-Accelerated Emergency Response & Crisis Coordination Platform for Hospitality
+## Project Timeline – SafeStay Rapid Prototype
 
-## Problem
-Hotels and hospitality venues lose lives, reputation, and crores due to slow crisis response.
-
-## Solution (MVP)
-Mobile-first app with one-tap alerts, real-time team coordination, and automated escalation.
-
-## Team
-- Ronak Singhal (Founder/Lead Developer)
-
-## Setup (to be filled later)
-Coming soon...
-
-## Submission Links (to be updated)
-- Live MVP: [link]
-- Demo Video: [link]
-- Project Deck: [link]
+- **Day 1** (Mar 19) – Project folder, GitHub repo, README, template download  
+- **Day 2** (Mar 20) – Problem statement, architecture diagram, crisis examples  
+- **Day 3** (Mar 21) – MVP features, wireframes, deck draft  
+- **Day 4** (Mar 22) – Flutter + Firebase setup, login + home screen (emergency buttons)  
+- **Day 5** (Mar 23) – Alert confirmation screen (type, countdown, ack/cancel)  
+- **Day 6** (Mar 24) – Realtime dashboard with live alerts + real location  
+- **Day 7** (Mar 25) – Interactive dashboard: acknowledge + ETA + live status
