@@ -1,17 +1,31 @@
-# safestay_rapid
+# SafeStay Rapid
+Accelerated Emergency Response & Crisis Coordination Platform for Hospitality
 
-A new Flutter project.
+## Live MVP Demo
+https://safestay-rapid-5c29e.web.app
 
-## Getting Started
+## Demo Video
+[Insert your YouTube/Google Drive link here – 2–3 min]
 
-This project is a starting point for a Flutter application.
+## Problem
+Hospitality venues lose lives and reputation due to delayed crisis response (8–25 min average). SafeStay Rapid reduces this to under 3 minutes with one-tap alerts, real-time team coordination, and automated escalation.
 
-A few resources to get you started if this is your first Flutter project:
+## Features
+- One-tap emergency alerts (Fire, Medical, Security, etc.)
+- Real-time team dashboard with acknowledgements
+- Auto-escalation timer (60 seconds)
+- Digital SOP checklist with progress saving
+- Firebase backend (Auth + Firestore)
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Tech Stack
+- Flutter (cross-platform mobile/web)
+- Firebase (Auth, Firestore, FCM push)
+- GitHub for version control
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Setup (for reviewers)
+1. Clone repo
+2. `flutter pub get`
+3. `flutter run -d chrome`
+
+## Team
+- Ronak Singhal (Founder/Lead Developer)
