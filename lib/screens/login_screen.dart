@@ -1,12 +1,11 @@
-// ignore_for_file: avoid_print  // Silences print() lint warnings
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
-import 'home_screen.dart';
-import 'sign_up_screen.dart'; // ← Added import for SignUpScreen
+import 'manager_home_screen.dart';
+import 'staff_home_screen.dart';
+import 'guest_home_screen.dart';
+import 'sign_up_screen.dart';   // Make sure this file exists
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,38 +30,57 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
 
-      // Subscribe to FCM topic – only on mobile (skip on web)
-      if (!kIsWeb) {
-        await FirebaseMessaging.instance.subscribeToTopic('all_team');
-        print("Subscribed to 'all_team' topic");
-      } else {
-        print("Skipping topic subscription on web (not supported)");
+      final User? user = userCredential.user;
+      if (user == null) throw Exception("User not found");
+
+      // Fetch user role from Firestore
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      String role = 'guest'; // default
+
+      if (doc.exists && doc.data() != null) {
+        role = (doc.data()!['role'] ?? 'guest').toString().toLowerCase();
       }
 
       if (!mounted) return;
 
+      Widget nextScreen;
+
+      switch (role) {
+        case 'manager':
+          nextScreen = const ManagerHomeScreen();
+          break;
+        case 'staff':
+          nextScreen = const StaffHomeScreen();
+          break;
+        case 'customer':
+        case 'guest':
+          nextScreen = const GuestHomeScreen();
+          break;
+        default:
+          nextScreen = const GuestHomeScreen();
+      }
+
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => nextScreen),
       );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
 
       String msg = "Login failed. Please try again.";
-      if (e.code == 'user-not-found') {
-        msg = "No user found with this email.";
-      } else if (e.code == 'wrong-password') {
-        msg = "Incorrect password.";
-      } else if (e.code == 'invalid-email') {
-        msg = "Invalid email format.";
-      } else {
-        msg = e.message ?? "An error occurred.";
-      }
+      if (e.code == 'user-not-found') msg = "No account found with this email.";
+      else if (e.code == 'wrong-password') msg = "Incorrect password.";
+      else if (e.code == 'invalid-email') msg = "Invalid email format.";
+      else msg = e.message ?? "An error occurred.";
 
       setState(() => errorMessage = msg);
     } catch (e) {
@@ -91,8 +109,13 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text(
-                "Login as Staff / Manager",
+                "Login to SafeStay Rapid",
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Staff / Manager / Guest",
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 40),
 
@@ -126,7 +149,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
 
               if (errorMessage != null)
                 Padding(

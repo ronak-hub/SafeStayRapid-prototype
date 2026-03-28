@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -22,42 +20,168 @@ class AlertConfirmationScreen extends StatefulWidget {
 }
 
 class _AlertConfirmationScreenState extends State<AlertConfirmationScreen> {
-  bool _isManager = false;
-  bool _isLoading = false;
+  bool isManager = true;
 
-  int _secondsLeft = 60;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("${widget.type} ALERT"),
+        backgroundColor: Colors.red,
+      ),
+      body: FutureBuilder<DocumentSnapshot>(
+        future: FirebaseFirestore.instance.collection('alerts').doc(widget.alertId).get(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          String locationText = "Location not available";
+          String raisedBy = FirebaseAuth.instance.currentUser?.email ?? 'Staff';
+          String timeText = "Just now";
+
+          if (snapshot.hasData && snapshot.data!.exists) {
+            final data = snapshot.data!.data() as Map<String, dynamic>;
+            locationText = data['location'] ?? "Location not available";
+            raisedBy = data['raisedByEmail'] ?? raisedBy;
+            final ts = (data['timestamp'] as Timestamp?)?.toDate();
+            timeText = ts != null
+                ? "${ts.hour}:${ts.minute.toString().padLeft(2, '0')} • ${ts.day}/${ts.month}/${ts.year}"
+                : "Just now";
+          }
+
+          return Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "${widget.type} at $locationText",
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Raised by: $raisedBy\nTime: $timeText",
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 30),
+
+                // Isolated Countdown (no flicker)
+                CountdownTimer(initialSeconds: 60, alertId: widget.alertId),
+
+                const SizedBox(height: 24),
+
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SopChecklistScreen(
+                          alertId: widget.alertId,
+                          alertType: widget.type,
+                        ),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                  child: const Text(
+                    "View SOP Checklist",
+                    style: TextStyle(fontSize: 18, color: Colors.white),
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+
+                ElevatedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("✅ Acknowledged! Team notified."),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    minimumSize: const Size(double.infinity, 65),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text(
+                    "I AM RESPONDING",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                ElevatedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Alert cancelled successfully"),
+                        backgroundColor: Colors.grey,
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[700],
+                    minimumSize: const Size(double.infinity, 55),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    foregroundColor: Colors.transparent,
+                  ),
+                  child: const Text(
+                    "Cancel Alert (Manager Only)",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+
+                const Spacer(),
+                const Text(
+                  "Real-time team dashboard coming soon",
+                  style: TextStyle(color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// Separate widget - only this rebuilds every 5 seconds (no flicker on main screen)
+class CountdownTimer extends StatefulWidget {
+  final int initialSeconds;
+  final String alertId;
+
+  const CountdownTimer({
+    super.key,
+    required this.initialSeconds,
+    required this.alertId,
+  });
+
+  @override
+  State<CountdownTimer> createState() => _CountdownTimerState();
+}
+
+class _CountdownTimerState extends State<CountdownTimer> {
+  late int _secondsLeft;
   late Timer _timer;
   bool _escalated = false;
 
   @override
   void initState() {
     super.initState();
-    _loadUserRole();
-    _startTimer();
-  }
+    _secondsLeft = widget.initialSeconds;
 
-  Future<void> _loadUserRole() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
-      if (doc.exists && doc.data() != null) {
-        setState(() {
-          _isManager = doc['role'] == 'manager';
-        });
-      }
-    } catch (e) {
-      print("Error loading role: $e");
-      setState(() => _isManager = false); // Default to staff
-    }
-  }
-
-  void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (!mounted) {
         timer.cancel();
@@ -74,14 +198,15 @@ class _AlertConfirmationScreenState extends State<AlertConfirmationScreen> {
           timer.cancel();
           _escalated = true;
 
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Auto-escalation triggered – notifying external responders"),
-                backgroundColor: Colors.deepOrange,
-              ),
-            );
-          }
+          print("AUTO-ESCALATION TRIGGERED for alert ${widget.alertId}");
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Auto-escalation triggered – notifying external responders"),
+              backgroundColor: Colors.deepOrange,
+              duration: Duration(seconds: 5),
+            ),
+          );
         }
       });
     });
@@ -93,193 +218,25 @@ class _AlertConfirmationScreenState extends State<AlertConfirmationScreen> {
     super.dispose();
   }
 
-  Future<void> acknowledge() async {
-    if (!mounted) return;
-    setState(() => _isLoading = true);
-
-    try {
-      await FirebaseFirestore.instance
-          .collection('alerts')
-          .doc(widget.alertId)
-          .update({
-        'status': 'acknowledged',
-        'acknowledgedBy': FirebaseAuth.instance.currentUser?.email ?? 'Staff',
-        'acknowledgedAt': FieldValue.serverTimestamp(),
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("✅ Acknowledged! Team notified."),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to acknowledge"), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> cancelAlert() async {
-    if (!mounted) return;
-    if (!_isManager) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Only Managers can cancel alerts"),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      await FirebaseFirestore.instance
-          .collection('alerts')
-          .doc(widget.alertId)
-          .delete();
-
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Alert cancelled successfully"),
-            backgroundColor: Colors.grey,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to cancel alert"), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("${widget.type} ALERT"),
-        backgroundColor: Colors.red,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Text(
-              _isManager ? "👑 Manager" : "👤 Staff",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _secondsLeft <= 10 || _escalated ? Colors.red[100] : Colors.orange[100],
+        borderRadius: BorderRadius.circular(8),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "${widget.type} Alert",
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text("ID: ${widget.alertId}"),
-              const SizedBox(height: 30),
-
-              // Timer Box
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _secondsLeft <= 10 || _escalated ? Colors.red[100] : Colors.orange[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  _escalated ? "Escalation triggered!" : "$_secondsLeft seconds until auto-escalation",
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: _secondsLeft <= 10 || _escalated ? Colors.red : Colors.orange.shade900,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => SopChecklistScreen(
-                        alertId: widget.alertId,
-                        alertType: widget.type,
-                      ),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                child: const Text("View SOP Checklist", style: TextStyle(fontSize: 18, color: Colors.white)),
-              ),
-
-              const SizedBox(height: 40),
-
-              // Green Button
-              ElevatedButton(
-                onPressed: _isLoading ? null : acknowledge,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  minimumSize: const Size(double.infinity, 65),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("I AM RESPONDING", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Cancel Button - Only visible/enabled for Manager
-              ElevatedButton(
-                onPressed: _isLoading || !_isManager ? null : cancelAlert,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[700],
-                  minimumSize: const Size(double.infinity, 55),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: Text(
-                  "Cancel Alert (Manager Only)",
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-              const Text(
-                "Real-time team dashboard coming soon",
-                style: TextStyle(color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+      child: Text(
+        _escalated
+            ? "Escalation triggered!"
+            : "$_secondsLeft seconds until auto-escalation",
+        style: TextStyle(
+          fontSize: 18,
+          color: _secondsLeft <= 10 || _escalated ? Colors.red : Colors.orange.shade900,
+          fontWeight: FontWeight.bold,
         ),
+        textAlign: TextAlign.center,
       ),
     );
   }
