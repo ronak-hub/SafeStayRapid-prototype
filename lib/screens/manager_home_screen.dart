@@ -32,7 +32,17 @@ class _ManagerHomeScreenState extends State<ManagerHomeScreen> {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return const Center(child: Text("Error loading alerts"));
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'Error loading alerts (${snapshot.error}).\n'
+                  'If this mentions an index, deploy Firestore indexes '
+                  '(see firestore.indexes.json / firebase deploy --only firestore).',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
           }
 
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -140,7 +150,7 @@ class _ManagerHomeScreenState extends State<ManagerHomeScreen> {
                                   ],
                                 ),
                               );
-                            }).toList(),
+                            }),
                           ],
                         ),
 
@@ -177,14 +187,13 @@ class _ManagerHomeScreenState extends State<ManagerHomeScreen> {
                                     .doc(doc.id)
                                     .update({'status': 'resolved'});
 
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text("Alert marked as resolved"),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                }
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Alert marked as resolved"),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.grey[700],

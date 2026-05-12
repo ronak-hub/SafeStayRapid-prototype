@@ -41,7 +41,9 @@ class _GuestHomeScreenState extends State<GuestHomeScreen> {
       }
 
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
 
       setState(() {
@@ -56,7 +58,9 @@ class _GuestHomeScreenState extends State<GuestHomeScreen> {
     try {
       // Get fresh location every time an alert is raised
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
 
       String locationStr = "${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}";

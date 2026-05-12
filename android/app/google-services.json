@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "34147668629",
+    "project_id": "safestay-rapid-5c29e",
+    "storage_bucket": "safestay-rapid-5c29e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:34147668629:android:5278065d218832e004819c",
+        "android_client_info": {
+          "package_name": "com.safestay_rapid"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "34147668629-ma2mkgmmn2llr4qi2ffqn0t9met567f9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDsrTGapMZ8B1abl5SDZGJTSeEcbufwidE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "34147668629-ma2mkgmmn2llr4qi2ffqn0t9met567f9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

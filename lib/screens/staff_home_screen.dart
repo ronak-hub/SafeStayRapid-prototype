@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -40,7 +39,9 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
       }
 
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
 
       setState(() {
@@ -76,7 +77,16 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return const Center(child: Text("Error loading alerts"));
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        'Error loading alerts (${snapshot.error}).\n'
+                        'Deploy Firestore indexes if the console prompted for one.',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
                 }
 
                 if (snapshot.connectionState == ConnectionState.waiting) {

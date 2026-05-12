@@ -188,27 +188,32 @@ class _CountdownTimerState extends State<CountdownTimer> {
         return;
       }
 
+      var escalatedNow = false;
       setState(() {
         if (_secondsLeft > 0 && !_escalated) {
           _secondsLeft -= 5;
-          if (_secondsLeft < 0) _secondsLeft = 0;
+          if (_secondsLeft < 0) {
+            _secondsLeft = 0;
+          }
         }
 
         if (_secondsLeft <= 0 && !_escalated) {
           timer.cancel();
           _escalated = true;
-
-          print("AUTO-ESCALATION TRIGGERED for alert ${widget.alertId}");
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Auto-escalation triggered – notifying external responders"),
-              backgroundColor: Colors.deepOrange,
-              duration: Duration(seconds: 5),
-            ),
-          );
+          escalatedNow = true;
         }
       });
+
+      if (escalatedNow && mounted) {
+        debugPrint('AUTO-ESCALATION for alert ${widget.alertId}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Auto-escalation triggered – notifying external responders"),
+            backgroundColor: Colors.deepOrange,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
     });
   }
 

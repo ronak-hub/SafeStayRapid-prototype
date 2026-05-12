@@ -1,4 +1,4 @@
-package com.example.safestay_rapid
+package com.safestay_rapid
 
 import io.flutter.embedding.android.FlutterActivity
 

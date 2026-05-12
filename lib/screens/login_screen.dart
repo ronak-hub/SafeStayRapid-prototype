@@ -77,10 +77,15 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       String msg = "Login failed. Please try again.";
-      if (e.code == 'user-not-found') msg = "No account found with this email.";
-      else if (e.code == 'wrong-password') msg = "Incorrect password.";
-      else if (e.code == 'invalid-email') msg = "Invalid email format.";
-      else msg = e.message ?? "An error occurred.";
+      if (e.code == 'user-not-found') {
+        msg = "No account found with this email.";
+      } else if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        msg = "Incorrect email or password.";
+      } else if (e.code == 'invalid-email') {
+        msg = "Invalid email format.";
+      } else {
+        msg = e.message ?? "An error occurred.";
+      }
 
       setState(() => errorMessage = msg);
     } catch (e) {

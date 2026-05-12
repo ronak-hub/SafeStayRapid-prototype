@@ -1,36 +1,32 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'firebase_options.dart';
 import 'screens/login_screen.dart';
+import 'widgets/firebase_connection_wrapper.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // This is called when app is in background or terminated
-  print("Background/terminated message received: ${message.notification?.title}");
-  // Add any background logic here (e.g., show local notification)
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  }
+  debugPrint('Background message: ${message.notification?.title}');
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  Object? firebaseInitError;
+
   try {
     await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: "AIzaSyDPYUKUoLrjGyxIYUWTjMd8Wl-ilz2VkbM",
-        authDomain: "safestay-rapid-5c29e.firebaseapp.com",
-        projectId: "safestay-rapid-5c29e",
-        storageBucket: "safestay-rapid-5c29e.firebasestorage.app",
-        messagingSenderId: "34147668629",
-        appId: "1:34147668629:web:d88637bfaab24a7304819c",
-        measurementId: "G-H61V42T2BH",
-      ),
+      options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    // Initialize FCM
-    FirebaseMessaging messaging = FirebaseMessaging.instance;
+    final FirebaseMessaging messaging = FirebaseMessaging.instance;
 
-    // Request permission (required for iOS, recommended for Android/web)
-    NotificationSettings settings = await messaging.requestPermission(
+    final NotificationSettings settings = await messaging.requestPermission(
       alert: true,
       announcement: false,
       badge: true,
@@ -39,37 +35,38 @@ void main() async {
       provisional: false,
       sound: true,
     );
-    print('User granted permission: ${settings.authorizationStatus}');
+    debugPrint('Notification permission: ${settings.authorizationStatus}');
 
-    // Register background handler (for when app is closed/minimized)
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // Foreground message handler (when app is open)
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Foreground message received: ${message.notification?.title}');
-      // Optional: show in-app snackbar or dialog here
+      debugPrint('Foreground message: ${message.notification?.title}');
     });
 
-    // Get FCM token with VAPID key for web push
-    String? fcmToken = await messaging.getToken(
-      vapidKey: "BPgcRY5LtHqmEHPsj0hVAE-g9zta6Po_37ZAUdwrdgLkHHckhn1xymmUx3jLudc2cKjxWZZfRLGmG_Y4pbaS7Ao",
-    );
-    print("FCM Token: $fcmToken");
+    // VAPID key is only used on web; native mobile uses FCM without it.
+    final String? fcmToken = kIsWeb
+        ? await messaging.getToken(
+            vapidKey:
+                'BPgcRY5LtHqmEHPsj0hVAE-g9zta6Po_37ZAUdwrdgLkHHckhn1xymmUx3jLudc2cKjxWZZfRLGmG_Y4pbaS7Ao',
+          )
+        : await messaging.getToken();
+    debugPrint('FCM token: $fcmToken');
 
     if (settings.authorizationStatus == AuthorizationStatus.denied) {
-      print("Notifications denied – push features will be limited");
+      debugPrint('Notifications denied — push features will be limited');
     }
-
-  } catch (e) {
-    print("FCM initialization failed (app continues without push): $e");
-    // Do NOT rethrow — allow app to run normally
+  } catch (e, st) {
+    firebaseInitError = e;
+    debugPrint('Firebase/FCM init issue (app continues): $e\n$st');
   }
 
-  runApp(const MyApp());
+  runApp(MyApp(firebaseInitError: firebaseInitError));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, this.firebaseInitError});
+
+  final Object? firebaseInitError;
 
   @override
   Widget build(BuildContext context) {
@@ -80,6 +77,12 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.red,
         useMaterial3: true,
       ),
+      builder: (context, child) {
+        return FirebaseConnectionWrapper(
+          firebaseInitError: firebaseInitError,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: const LoginScreen(),
       routes: {
         '/login': (context) => const LoginScreen(),

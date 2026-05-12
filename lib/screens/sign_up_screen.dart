@@ -17,7 +17,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
 
-  String selectedRole = 'guest';   // Default role
+  String selectedRole = 'guest';
 
   bool isLoading = false;
   String? errorMessage;
@@ -44,7 +44,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final User? user = userCredential.user;
 
       if (user != null) {
-        // Save user + role to Firestore
         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
           'email': user.email,
           'role': selectedRole,
@@ -71,22 +70,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
-
-      String msg = "Sign up failed.";
-      if (e.code == 'email-already-in-use') msg = "This email is already in use.";
-      else if (e.code == 'weak-password') msg = "Password is too weak.";
-      else if (e.code == 'invalid-email') msg = "Invalid email format.";
-      else msg = e.message ?? "An error occurred.";
-
+      String msg = switch (e.code) {
+        'email-already-in-use' => "This email is already in use.",
+        'weak-password' => "Password is too weak.",
+        'invalid-email' => "Invalid email format.",
+        _ => e.message ?? "Sign up failed.",
+      };
       setState(() => errorMessage = msg);
     } catch (e) {
-      if (mounted) {
-        setState(() => errorMessage = "Something went wrong: $e");
-      }
+      if (mounted) setState(() => errorMessage = "Something went wrong.");
     } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -116,6 +110,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   decoration: const InputDecoration(
                     labelText: "Email",
                     border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email),
                   ),
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) => value == null || value.isEmpty ? "Enter email" : null,
@@ -127,6 +122,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   decoration: const InputDecoration(
                     labelText: "Password",
                     border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock),
                   ),
                   obscureText: true,
                   validator: (value) => value == null || value.length < 6 ? "Password must be at least 6 characters" : null,
@@ -138,18 +134,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   decoration: const InputDecoration(
                     labelText: "Confirm Password",
                     border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock_outline),
                   ),
                   obscureText: true,
                   validator: (value) => value != passwordController.text ? "Passwords do not match" : null,
                 ),
                 const SizedBox(height: 30),
 
-                // Role Selection Dropdown
+                // Fixed Dropdown
                 DropdownButtonFormField<String>(
-                  value: selectedRole,
+                  key: ValueKey<String>(selectedRole),
+                  isExpanded: true,
+                  isDense: true,
+                  initialValue: selectedRole,
                   decoration: const InputDecoration(
                     labelText: "Register as",
                     border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person_outline),
                   ),
                   items: const [
                     DropdownMenuItem(value: 'guest', child: Text("Guest / Customer")),
@@ -168,7 +169,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 if (errorMessage != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
-                    child: Text(errorMessage!, style: const TextStyle(color: Colors.red)),
+                    child: Text(errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 14)),
                   ),
 
                 isLoading
