@@ -2,10 +2,10 @@
 Accelerated Emergency Response & Crisis Coordination Platform for Hospitality
 
 ## Live MVP Demo
-https://safestay-rapid-5c29e.web.app
+[https://safestay-rapid-5c29e.web.app](https://safestay-rapid-5c29e.web.app/)
 
 ## Demo Video
-[Insert your YouTube/Google Drive link here – 2–3 min]
+(https://drive.google.com/drive/u/0/folders/13i9eOXvEXmyQUXYX1G4j5N4WomCzCUNg)
 
 ## Problem
 Hospitality venues lose lives and reputation due to delayed crisis response (8–25 min average). SafeStay Rapid reduces this to under 3 minutes with one-tap alerts, real-time team coordination, and automated escalation.
