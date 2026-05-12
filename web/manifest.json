@@ -1,6 +1,6 @@
 {
-    "name": "safestay_rapid",
-    "short_name": "safestay_rapid",
+    "name": "SafeStay Rapid",
+    "short_name": "SafeStay Rapid",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

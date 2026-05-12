@@ -23,41 +23,54 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-
-    final FirebaseMessaging messaging = FirebaseMessaging.instance;
-
-    final NotificationSettings settings = await messaging.requestPermission(
-      alert: true,
-      announcement: false,
-      badge: true,
-      carPlay: false,
-      criticalAlert: false,
-      provisional: false,
-      sound: true,
-    );
-    debugPrint('Notification permission: ${settings.authorizationStatus}');
-
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint('Foreground message: ${message.notification?.title}');
-    });
-
-    // VAPID key is only used on web; native mobile uses FCM without it.
-    final String? fcmToken = kIsWeb
-        ? await messaging.getToken(
-            vapidKey:
-                'BPgcRY5LtHqmEHPsj0hVAE-g9zta6Po_37ZAUdwrdgLkHHckhn1xymmUx3jLudc2cKjxWZZfRLGmG_Y4pbaS7Ao',
-          )
-        : await messaging.getToken();
-    debugPrint('FCM token: $fcmToken');
-
-    if (settings.authorizationStatus == AuthorizationStatus.denied) {
-      debugPrint('Notifications denied — push features will be limited');
-    }
   } catch (e, st) {
     firebaseInitError = e;
-    debugPrint('Firebase/FCM init issue (app continues): $e\n$st');
+    debugPrint('Firebase.initializeApp failed: $e\n$st');
+  }
+
+  if (firebaseInitError == null) {
+    try {
+      final FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+      final NotificationSettings settings = await messaging.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
+      debugPrint('Notification permission: ${settings.authorizationStatus}');
+
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        debugPrint('Foreground message: ${message.notification?.title}');
+      });
+
+      final bool pushAllowed = settings.authorizationStatus ==
+              AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+
+      // On web, requesting a token without permission throws permission-blocked.
+      if (pushAllowed) {
+        final String? fcmToken = kIsWeb
+            ? await messaging.getToken(
+                vapidKey:
+                    'BPgcRY5LtHqmEHPsj0hVAE-g9zta6Po_37ZAUdwrdgLkHHckhn1xymmUx3jLudc2cKjxWZZfRLGmG_Y4pbaS7Ao',
+              )
+            : await messaging.getToken();
+        debugPrint('FCM token: $fcmToken');
+      } else {
+        debugPrint(
+          'Push not enabled (${settings.authorizationStatus.name}) — '
+          'skipping FCM token. Reset site permissions in the browser if needed.',
+        );
+      }
+    } catch (e, st) {
+      debugPrint('FCM setup (optional): $e\n$st');
+    }
   }
 
   runApp(MyApp(firebaseInitError: firebaseInitError));
