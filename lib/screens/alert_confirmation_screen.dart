@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/escalation_helper.dart';
 import 'sop_checklist_screen.dart';
@@ -22,6 +23,136 @@ class AlertConfirmationScreen extends StatefulWidget {
 
 class _AlertConfirmationScreenState extends State<AlertConfirmationScreen> {
   bool isManager = true;
+
+  void _showExternalEscalationSheet({
+    required String alertId,
+    required String type,
+    required String locationText,
+    required String raisedBy,
+    required String timeText,
+  }) {
+    final summary = EscalationHelper.buildIndianEmergencySummary(
+      alertId: alertId,
+      type: type,
+      locationText: locationText,
+      raisedByEmail: raisedBy,
+      timeText: timeText,
+    );
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "External escalation (India)",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Use these numbers only when hotel SOPs are insufficient.",
+                  style: TextStyle(color: Colors.grey.shade700),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _EmergencyChip(
+                      label: "All-in-one 112",
+                      number: EscalationHelper.emergencyAllInOne,
+                      onTap: () => launchUrl(
+                        Uri(scheme: 'tel', path: EscalationHelper.emergencyAllInOne),
+                      ),
+                    ),
+                    _EmergencyChip(
+                      label: "Police 100",
+                      number: EscalationHelper.police,
+                      onTap: () => launchUrl(
+                        Uri(scheme: 'tel', path: EscalationHelper.police),
+                      ),
+                    ),
+                    _EmergencyChip(
+                      label: "Fire 101",
+                      number: EscalationHelper.fire,
+                      onTap: () => launchUrl(
+                        Uri(scheme: 'tel', path: EscalationHelper.fire),
+                      ),
+                    ),
+                    _EmergencyChip(
+                      label: "Ambulance 102",
+                      number: EscalationHelper.ambulance,
+                      onTap: () => launchUrl(
+                        Uri(scheme: 'tel', path: EscalationHelper.ambulance),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                const Text(
+                  "Message test contact (prefilled)",
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        final to = EscalationHelper.primaryPropertyContact
+                            .replaceAll(RegExp(r'\\D+'), '');
+                        final body = Uri.encodeComponent(summary);
+                        final smsUri = Uri.parse('sms:$to?body=$body');
+                        launchUrl(smsUri);
+                      },
+                      icon: const Icon(Icons.sms),
+                      label: const Text("Compose SMS"),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "Suggested script:",
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SelectableText(
+                    summary,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +199,14 @@ class _AlertConfirmationScreenState extends State<AlertConfirmationScreen> {
                 const SizedBox(height: 30),
 
                 // Isolated Countdown (no flicker)
-                CountdownTimer(initialSeconds: 60, alertId: widget.alertId),
+                CountdownTimer(
+                  initialSeconds: 60,
+                  alertId: widget.alertId,
+                  alertType: widget.type,
+                  locationText: locationText,
+                  raisedBy: raisedBy,
+                  timeText: timeText,
+                ),
 
                 const SizedBox(height: 24),
 
@@ -147,92 +285,12 @@ class _AlertConfirmationScreenState extends State<AlertConfirmationScreen> {
 
                 ElevatedButton.icon(
                   onPressed: () {
-                    final summary = EscalationHelper.buildIndianEmergencySummary(
+                    _showExternalEscalationSheet(
                       alertId: widget.alertId,
                       type: widget.type,
                       locationText: locationText,
-                      raisedByEmail: raisedBy,
+                      raisedBy: raisedBy,
                       timeText: timeText,
-                    );
-
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                      ),
-                      builder: (ctx) {
-                        return SafeArea(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const Text(
-                                      "External escalation (India)",
-                                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.close),
-                                      onPressed: () => Navigator.of(ctx).pop(),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  "Use these numbers only when hotel SOPs are insufficient or the situation is critical.",
-                                  style: TextStyle(color: Colors.grey.shade700),
-                                ),
-                                const SizedBox(height: 16),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: [
-                                    _EmergencyChip(
-                                      label: "All-in-one 112",
-                                      number: EscalationHelper.emergencyAllInOne,
-                                    ),
-                                    _EmergencyChip(
-                                      label: "Police 100",
-                                      number: EscalationHelper.police,
-                                    ),
-                                    _EmergencyChip(
-                                      label: "Fire 101",
-                                      number: EscalationHelper.fire,
-                                    ),
-                                    _EmergencyChip(
-                                      label: "Ambulance 102",
-                                      number: EscalationHelper.ambulance,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                const Text(
-                                  "Suggested script (you can read this out):",
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                                const SizedBox(height: 8),
-                                Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[100],
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: SelectableText(
-                                    summary,
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
                     );
                   },
                   icon: const Icon(Icons.emergency_share),
@@ -267,11 +325,19 @@ class _AlertConfirmationScreenState extends State<AlertConfirmationScreen> {
 class CountdownTimer extends StatefulWidget {
   final int initialSeconds;
   final String alertId;
+  final String alertType;
+  final String locationText;
+  final String raisedBy;
+  final String timeText;
 
   const CountdownTimer({
     super.key,
     required this.initialSeconds,
     required this.alertId,
+    required this.alertType,
+    required this.locationText,
+    required this.raisedBy,
+    required this.timeText,
   });
 
   @override
@@ -319,6 +385,10 @@ class _CountdownTimerState extends State<CountdownTimer> {
             .catchError((Object e, _) {
           debugPrint('Failed to write escalation metadata: $e');
         });
+
+        // Show the same external escalation sheet automatically for testing.
+        _showExternalEscalation();
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Auto-escalation triggered – consider calling external responders"),
@@ -328,6 +398,109 @@ class _CountdownTimerState extends State<CountdownTimer> {
         );
       }
     });
+  }
+
+  void _showExternalEscalation() {
+    final summary = EscalationHelper.buildIndianEmergencySummary(
+      alertId: widget.alertId,
+      type: widget.alertType,
+      locationText: widget.locationText,
+      raisedByEmail: widget.raisedBy,
+      timeText: widget.timeText,
+    );
+
+    // Testing assist: try to open an SMS composer pre-filled with the AI script.
+    // Browsers usually require user interaction; if launch fails, the sheet below
+    // still lets the manager compose SMS manually.
+    final to = EscalationHelper.primaryPropertyContact.replaceAll(
+      RegExp(r'\D+'),
+      '',
+    );
+    final body = Uri.encodeComponent(summary);
+    final smsUri = Uri.parse('sms:$to?body=$body');
+    unawaited(launchUrl(smsUri));
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "External escalation (India)",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text("Auto-escalation timer hit. Confirm before calling.",
+                    style: TextStyle(color: Colors.grey)),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _EmergencyChip(
+                      label: "All-in-one 112",
+                      number: EscalationHelper.emergencyAllInOne,
+                      onTap: () => launchUrl(
+                        Uri(scheme: 'tel', path: EscalationHelper.emergencyAllInOne),
+                      ),
+                    ),
+                    _EmergencyChip(
+                      label: "Police 100",
+                      number: EscalationHelper.police,
+                      onTap: () => launchUrl(
+                        Uri(scheme: 'tel', path: EscalationHelper.police),
+                      ),
+                    ),
+                    _EmergencyChip(
+                      label: "Fire 101",
+                      number: EscalationHelper.fire,
+                      onTap: () => launchUrl(
+                        Uri(scheme: 'tel', path: EscalationHelper.fire),
+                      ),
+                    ),
+                    _EmergencyChip(
+                      label: "Ambulance 102",
+                      number: EscalationHelper.ambulance,
+                      onTap: () => launchUrl(
+                        Uri(scheme: 'tel', path: EscalationHelper.ambulance),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "Suggested script:",
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SelectableText(
+                    summary,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -364,16 +537,19 @@ class _EmergencyChip extends StatelessWidget {
   const _EmergencyChip({
     required this.label,
     required this.number,
+    required this.onTap,
   });
 
   final String label;
   final String number;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
+    return ActionChip(
       avatar: const Icon(Icons.phone_in_talk, size: 16),
       label: Text('$label ($number)'),
+      onPressed: onTap,
     );
   }
 }

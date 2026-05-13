@@ -42,6 +42,7 @@ dependencies:
   logger: ^2.7.0
   http: ^1.6.0
   google_generative_ai: ^0.4.7
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
