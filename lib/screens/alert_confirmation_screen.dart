@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../services/escalation_helper.dart';
 import 'sop_checklist_screen.dart';
 
 class AlertConfirmationScreen extends StatefulWidget {
@@ -142,6 +143,111 @@ class _AlertConfirmationScreenState extends State<AlertConfirmationScreen> {
                   ),
                 ),
 
+                const SizedBox(height: 24),
+
+                ElevatedButton.icon(
+                  onPressed: () {
+                    final summary = EscalationHelper.buildIndianEmergencySummary(
+                      alertId: widget.alertId,
+                      type: widget.type,
+                      locationText: locationText,
+                      raisedByEmail: raisedBy,
+                      timeText: timeText,
+                    );
+
+                    showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                      ),
+                      builder: (ctx) {
+                        return SafeArea(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      "External escalation (India)",
+                                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.close),
+                                      onPressed: () => Navigator.of(ctx).pop(),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "Use these numbers only when hotel SOPs are insufficient or the situation is critical.",
+                                  style: TextStyle(color: Colors.grey.shade700),
+                                ),
+                                const SizedBox(height: 16),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    _EmergencyChip(
+                                      label: "All-in-one 112",
+                                      number: EscalationHelper.emergencyAllInOne,
+                                    ),
+                                    _EmergencyChip(
+                                      label: "Police 100",
+                                      number: EscalationHelper.police,
+                                    ),
+                                    _EmergencyChip(
+                                      label: "Fire 101",
+                                      number: EscalationHelper.fire,
+                                    ),
+                                    _EmergencyChip(
+                                      label: "Ambulance 102",
+                                      number: EscalationHelper.ambulance,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  "Suggested script (you can read this out):",
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: SelectableText(
+                                    summary,
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.emergency_share),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepOrange,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 55),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  label: const Text(
+                    "Escalate to external services",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+
                 const Spacer(),
                 const Text(
                   "Real-time team dashboard coming soon",
@@ -206,9 +312,16 @@ class _CountdownTimerState extends State<CountdownTimer> {
 
       if (escalatedNow && mounted) {
         debugPrint('AUTO-ESCALATION for alert ${widget.alertId}');
+        FirebaseFirestore.instance
+            .collection('alerts')
+            .doc(widget.alertId)
+            .update(EscalationHelper.buildAutoEscalationUpdate())
+            .catchError((Object e, _) {
+          debugPrint('Failed to write escalation metadata: $e');
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Auto-escalation triggered – notifying external responders"),
+            content: Text("Auto-escalation triggered – consider calling external responders"),
             backgroundColor: Colors.deepOrange,
             duration: Duration(seconds: 5),
           ),
@@ -243,6 +356,24 @@ class _CountdownTimerState extends State<CountdownTimer> {
         ),
         textAlign: TextAlign.center,
       ),
+    );
+  }
+}
+
+class _EmergencyChip extends StatelessWidget {
+  const _EmergencyChip({
+    required this.label,
+    required this.number,
+  });
+
+  final String label;
+  final String number;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      avatar: const Icon(Icons.phone_in_talk, size: 16),
+      label: Text('$label ($number)'),
     );
   }
 }
