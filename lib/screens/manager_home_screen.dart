@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import 'alert_confirmation_screen.dart';
+import 'alert_history_screen.dart';
 
 class ManagerHomeScreen extends StatefulWidget {
   const ManagerHomeScreen({super.key});
@@ -18,6 +19,18 @@ class _ManagerHomeScreenState extends State<ManagerHomeScreen> {
         title: const Text("Manager Dashboard"),
         backgroundColor: Colors.red,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'All alert history',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AlertHistoryScreen(showAllAlerts: true),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => setState(() {}),

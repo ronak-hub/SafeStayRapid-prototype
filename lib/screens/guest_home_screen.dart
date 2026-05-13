@@ -104,6 +104,7 @@ class _GuestHomeScreenState extends State<GuestHomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.history),
+            tooltip: 'My alert history',
             onPressed: () {
               Navigator.push(
                 context,
